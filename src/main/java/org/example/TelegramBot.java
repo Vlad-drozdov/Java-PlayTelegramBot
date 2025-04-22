@@ -51,7 +51,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void newNum(long chatId) {
         Random r = new Random();
-        questNum = r.nextInt(0,11);
+        questNum = r.nextInt(0,101);
         send(chatId, "Число загадане");
     }
 
