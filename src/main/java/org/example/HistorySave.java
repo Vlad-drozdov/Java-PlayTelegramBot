@@ -4,8 +4,8 @@ import java.io.*;
 
 public class HistorySave {
 
-    public static void save(boolean isBot,long userId,String data){
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("src/main/java/historyes/"+userId+".txt",true))) {
+    public static void save(boolean isBot,long id,String data){
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("src/main/java/historyes/"+id+".txt",true))) {
             writer.write(isBot+" "+data);
             writer.newLine();
         } catch (IOException e) {

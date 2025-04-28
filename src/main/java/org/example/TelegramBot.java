@@ -49,18 +49,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendYes(chatId, userMessage);
             }
 
-//            System.out.println("Получено сообщение: " + userMessage);
-
-//            if (userMessage.equals("/start")||userMessage.toLowerCase().equals("привіт")){
-//                send(chatId,"Привіт! Хочеш пограти? Якщо так напиши /new і я загадаю число від 0 до 100, а ти будеш вгадувати))");
-//            }else if (userMessage.equals("/new")){
-//                newNum(chatId);
-//            }else if (questNum!=-1){
-//                pazzle(chatId,userMessage);
-//            }else {
-//                send(chatId,"Число ще не загадане напишіть /new");
-//            }
-
         }else {
             System.out.println(update.getMessage());
             System.out.println("Отримано не текстове повідомлення");
@@ -78,7 +66,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         String command = update.getMessage().getText();
         long chatId = update.getMessage().getChatId();
 
-        if (command.equals("/history")){
+        if (command.equals("/start")){
+           send(chatId, "Привіт. Давай дружити!)");
+        } else if (command.equals("/history")){
             sendHistory(chatId,users.get(chatId).getHistory());
         } else if (command.equals("/remove_history")){
             users.get(chatId).clearHistory();
@@ -223,35 +213,4 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
