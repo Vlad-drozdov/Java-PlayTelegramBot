@@ -3,7 +3,6 @@ package org.example;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 
 public class User{
 
@@ -11,7 +10,7 @@ public class User{
     private final long id;
     private LocalDate birthday;
     private String city;
-    ArrayList<Message> history = new ArrayList<>();
+    ArrayList<LocalMessage> history = new ArrayList<>();
 
     public User(String name, long id){
         this.name = name;
@@ -19,14 +18,14 @@ public class User{
     }
 
     public void addMessage(boolean isBot, String message) {
-        history.add(new Message(isBot,message));
+        history.add(new LocalMessage(isBot,message));
     }
 
     public void clearHistory() {
         history.clear();
     }
 
-    public ArrayList<Message> getHistory() {
+    public ArrayList<LocalMessage> getHistory() {
         return history;
     }
 

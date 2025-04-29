@@ -1,10 +1,10 @@
 package org.example;
 
-public class Message {
+public class LocalMessage {
     private final Boolean isBot;
     private final String message;
 
-    public Message(boolean isBot, String message){
+    public LocalMessage(boolean isBot, String message){
         this.isBot = isBot;
         this.message = message;
     }
