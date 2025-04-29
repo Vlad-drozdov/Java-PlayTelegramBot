@@ -2,6 +2,7 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+src/main/java/org.example/BotPassword
 
 ### IntelliJ IDEA ###
 .idea/modules.xml

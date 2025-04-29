@@ -3,17 +3,15 @@ package org.example;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 
 public class TelegramBot extends TelegramLongPollingBot {
 
-    private final String key = "7688253824:AAG9UKm8q-yUNXLp4QBApKubt0Aa2ROZjyQ";
-    private final String botSystemName = "gfdfgdfgdfg_bot";
-    private final String botScreenName = "JavaTelegramBot_test";
+    private final BotPassword password =  new BotPassword();
 
     private final HistorySave historySave = new HistorySave();
 
@@ -26,32 +24,45 @@ public class TelegramBot extends TelegramLongPollingBot {
     private int questNum =-1;
 
     @Override
-    public String getBotUsername() {return botSystemName;}
+    public String getBotUsername() {return password.getBotScreenName();}
     @Override
-    public String getBotToken() {return key;}
+    public String getBotToken() {return password.getKey();}
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
-
-            String userMessage = update.getMessage().getText();
+        if (update.hasMessage()){
             long chatId = update.getMessage().getChatId();
+            if (update.getMessage().hasText()) {
 
-            updateHistory(update, chatId, userMessage);
-            historySave.save(false,chatId,userMessage);
-            if (isRegister){
-                register(chatId,userMessage);
-            }else if (isGame){
-                game(chatId,userMessage);
-            } else if (userMessage.startsWith("/")){
-                commands(update);
-            } else {
-                sendYes(chatId, userMessage);
+                String userMessage = update.getMessage().getText();
+
+
+                updateHistory(update, chatId, userMessage);
+                historySave.save(false,chatId,userMessage);
+                if (isRegister){
+                    register(chatId,userMessage);
+                }else if (isGame){
+                    game(chatId,userMessage);
+                } else if (userMessage.startsWith("/")){
+                    commands(update);
+                } else {
+                    sendYes(chatId, userMessage);
+                }
+
+            }else if (update.hasCallbackQuery()) {
+
+                String callbackData = update.getCallbackQuery().getData();
+
+                if (callbackData.equals("yes")) {
+                    register(chatId,"Так");
+                } else if (callbackData.equals("no")) {
+                    register(chatId,"Ні");
+                }
             }
-
-        }else {
-            System.out.println(update.getMessage());
-            System.out.println("Отримано не текстове повідомлення");
+            else {
+                System.out.println(update.getMessage());
+                System.out.println("Отримано не текстове повідомлення");
+            }
         }
     }
 
@@ -67,7 +78,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         long chatId = update.getMessage().getChatId();
 
         if (command.equals("/start")){
-           send(chatId, "Привіт. Давай дружити!)");
+           send(chatId, "Привіт!)");
         } else if (command.equals("/history")){
             sendHistory(chatId,users.get(chatId).getHistory());
         } else if (command.equals("/remove_history")){
@@ -79,7 +90,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             }else {
                 isRegister = true;
                 send(chatId,"Реєстрація");
-                send(chatId,"Ваше ім'я "+update.getMessage().getFrom().getUserName()+"?\n Так / Ні");
+                sendButtons(chatId,"Ваше ім'я "+update.getMessage().getFrom().getUserName()+"?");
             }
         } else if (command.equals("/my_user_data")){
             getUserData(chatId);
@@ -151,6 +162,32 @@ public class TelegramBot extends TelegramLongPollingBot {
             send(chatId,"Загадане число менше");
         else if (questNum > num)
             send(chatId,"Загадане число більше");
+    }
+
+    public void sendButtons(long chatId, String msg) {
+        InlineKeyboardButton yes = new InlineKeyboardButton();
+        yes.setText("Так");
+        yes.setCallbackData("yes");
+
+        InlineKeyboardButton no = new InlineKeyboardButton();
+        no.setText("Ні");
+        no.setCallbackData("no");
+
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        rows.add(Arrays.asList(yes,no));
+
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(rows);
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setReplyMarkup(markup);
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
     }
 
     private void sendOutHistory(long chatId, String botMessage) {
