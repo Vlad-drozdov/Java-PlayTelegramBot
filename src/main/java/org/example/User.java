@@ -12,6 +12,13 @@ public class User{
     private String city;
     ArrayList<LocalMessage> history = new ArrayList<>();
 
+    private boolean isRegister = false;
+    private int regStep = 0;
+
+    private boolean isGame2 = false;
+
+    private boolean isGame1 = false;
+
     public User(String name, long id){
         this.name = name;
         this.id = id;
@@ -56,5 +63,37 @@ public class User{
 
     public String getCity() {
         return city;
+    }
+
+    public boolean isRegister() {
+        return isRegister;
+    }
+
+    public int getRegStep() {
+        return regStep;
+    }
+
+    public boolean isGame2() {
+        return isGame2;
+    }
+
+    public boolean isGame1() {
+        return isGame1;
+    }
+
+    public void setGame2(boolean game2) {
+        isGame2 = game2;
+    }
+
+    public void setGame1(boolean game1) {
+        isGame1 = game1;
+    }
+
+    public void setRegister(boolean register) {
+        isRegister = register;
+    }
+
+    public void setRegStep(int regStep) {
+        this.regStep = regStep;
     }
 }

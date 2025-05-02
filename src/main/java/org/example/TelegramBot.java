@@ -2,7 +2,6 @@ package org.example;
 
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -13,19 +12,14 @@ import java.util.*;
 public class TelegramBot extends TelegramLongPollingBot {
 
     private final BotPassword password =  new BotPassword();
-
     private final HistorySave historySave = new HistorySave();
-
+    private final MessageManager msg = new MessageManager(this);
 
     private HashMap<Long, User> users = new HashMap<>();
 
-    private boolean isRegister = false;
-    private int regStep = 0;
-
-    private boolean isGame1 = false;
     private int questNum =-1;
 
-    private boolean isGame2 = false;
+
     private Message gameMessage = null;
     private InlineKeyboardMarkup game2Markup;
     private int xGame2 = 0;
@@ -46,14 +40,14 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             updateHistory(update, chatId, userMessage);
             historySave.save(false,chatId,userMessage);
-            if (isRegister){
+            if (users.get(chatId).isRegister()){
                 register(chatId,userMessage);
-            }else if (isGame1){
+            }else if (users.get(chatId).isGame1()){
                 game1(chatId,userMessage);
             } else if (userMessage.startsWith("/")){
                 commands(update);
             } else {
-                sendYes(chatId, userMessage);
+                msg.sendYes(chatId, userMessage);
             }
 
         }else if (update.hasCallbackQuery()) {
@@ -69,7 +63,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 xGame2--;
                 if (xGame2<0){
                     xGame2=0;
-                    send(chatId,"Не можна виходити за межі");
+                    msg.send(chatId,"Не можна виходити за межі");
                 }else {
                     game2(chatId);
                 }
@@ -77,7 +71,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 xGame2++;
                 if (xGame2>3){
                     xGame2=3;
-                    send(chatId,"Не можна виходити за межі");
+                    msg.send(chatId,"Не можна виходити за межі");
                 } else {
                     game2(chatId);
                 }
@@ -85,7 +79,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 yGame2--;
                 if (yGame2<0){
                     yGame2=0;
-                    send(chatId,"Не можна виходити за межі");
+                    msg.send(chatId,"Не можна виходити за межі");
                 }else {
                     game2(chatId);
                 }
@@ -93,7 +87,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 yGame2++;
                 if (yGame2>4){
                     yGame2=4;
-                    send(chatId,"Не можна виходити за межі");
+                    msg.send(chatId,"Не можна виходити за межі");
                 }else {
                     game2(chatId);
                 }
@@ -117,33 +111,33 @@ public class TelegramBot extends TelegramLongPollingBot {
         long chatId = update.getMessage().getChatId();
 
         if (command.equals("/start")){
-           send(chatId, "Привіт!)");
+           msg.send(chatId, "Привіт!)");
         } else if (command.equals("/history")){
-            sendHistory(chatId,users.get(chatId).getHistory());
+            msg.sendHistory(chatId,users.get(chatId).getHistory());
         } else if (command.equals("/remove_history")){
             users.get(chatId).clearHistory();
-            send(chatId,"Історію очищено!");
+            msg.send(chatId,"Історію очищено!");
         } else if (command.equals("/register")){
-            if (regStep == 3){
-                send(chatId,"Ви вже пройшли реєстацію");
+            if (users.get(chatId).getRegStep() == 3){
+                msg.send(chatId,"Ви вже пройшли реєстацію");
             }else {
-                isRegister = true;
-                send(chatId,"Реєстрація");
-                sendButtons(chatId,"Ваше ім'я "+update.getMessage().getFrom().getUserName()+"?");
+                users.get(chatId).setRegister(true);
+                msg.send(chatId,"Реєстрація");
+                buttonsYesNo(chatId,"Ваше ім'я "+update.getMessage().getFrom().getUserName()+"?");
             }
         } else if (command.equals("/my_user_data")){
             getUserData(chatId);
         } else if (command.equals("/start_game1")){
-            isGame1 = true;
+            users.get(chatId).setGame1(true);
             newNum(chatId);
-            send(chatId,"Число загадане");
+            msg.send(chatId,"Число загадане");
         }else if (command.equals("/start_game2")){
-            isGame2 = true;
+            users.get(chatId).setGame2(true);
             xGame2 = 0;
             yGame2 = 0;
-            sendArrowButton(chatId,"Ваша позиція: 1");
+            game2Buttons(chatId,"Ваша позиція: 1");
         } else {
-            send(chatId,"Команда не знайдена");
+            msg.send(chatId,"Команда не знайдена");
         }
     }
 
@@ -157,38 +151,38 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (users.get(id).getCity()!=null){
             userData+="Місто: "+users.get(id).getCity();
         }
-        send(id,userData);
+        msg.send(id,userData);
     }
 
     private void register(long chatId, String userMessage){
-        if (regStep == 0){
+        if (users.get(chatId).getRegStep() == 0){
             if (userMessage.equals("Так")){
                 System.out.println("ok");
-                send(chatId,"Ім'я підтверджене!");
-                regStep+=2;
-                send(chatId,"Введіть дату народження вигляду DD.MM.YYYY");
+                msg.send(chatId,"Ім'я підтверджене!");
+                users.get(chatId).setRegStep(users.get(chatId).getRegStep()+2);
+                msg.send(chatId,"Введіть дату народження вигляду DD.MM.YYYY");
             } else if (userMessage.equals("Ні")){
                 System.out.println("ok");
-                regStep++;
-                send(chatId,"Введіть справжнє ім'я");
+                users.get(chatId).setRegStep(users.get(chatId).getRegStep()+1);
+                msg.send(chatId,"Введіть справжнє ім'я");
             } else {
-                send(chatId,"Невірна відповіть, спробуйте ще раз.");
+                msg.send(chatId,"Невірна відповіть, спробуйте ще раз.");
             }
-        } else if (regStep==1){
+        } else if (users.get(chatId).getRegStep()==1){
             users.get(chatId).setName(userMessage);
-            send(chatId,"Ім'я збережено!");
-            regStep++;
-            send(chatId,"Введіть дату народження вигляду DD.MM.YYYY");
-        } else if (regStep == 2){
+            msg.send(chatId,"Ім'я збережено!");
+            users.get(chatId).setRegStep(users.get(chatId).getRegStep()+1);
+            msg.send(chatId,"Введіть дату народження вигляду DD.MM.YYYY");
+        } else if (users.get(chatId).getRegStep() == 2){
             users.get(chatId).setDate(userMessage);
-            send(chatId,"Дату збережено!");
-            regStep++;
-            send(chatId,"Введіть назву міста, де ви зараз живете");
-        } else if (regStep==3){
+            msg.send(chatId,"Дату збережено!");
+            users.get(chatId).setRegStep(users.get(chatId).getRegStep()+1);
+            msg.send(chatId,"Введіть назву міста, де ви зараз живете");
+        } else if (users.get(chatId).getRegStep()==3){
             users.get(chatId).setCity(userMessage);
-            send(chatId,"Місто збережено!");
-            send(chatId,"Реєстрацію завершено");
-            isRegister = false;
+            msg.send(chatId,"Місто збережено!");
+            msg.send(chatId,"Реєстрацію завершено");
+            users.get(chatId).setRegister(false);
         }
     }
 
@@ -200,13 +194,13 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void game1(long chatId, String userMessage) {
         int num = Integer.valueOf(userMessage);
         if (num == questNum){
-            send(chatId,"Ти переміг! Гра завершена.");
-            isGame1 = false;
+            msg.send(chatId,"Ти переміг! Гра завершена.");
+            users.get(chatId).setGame1(false);
         }
         else if (questNum < num)
-            send(chatId,"Загадане число менше");
+            msg.send(chatId,"Загадане число менше");
         else if (questNum > num)
-            send(chatId,"Загадане число більше");
+            msg.send(chatId,"Загадане число більше");
     }
 
     private void game2(long chatId){
@@ -218,39 +212,21 @@ public class TelegramBot extends TelegramLongPollingBot {
         };
         int position = arr[xGame2][yGame2];
 
-        editMessageWithButtons(chatId,gameMessage.getMessageId(),"Ваша позиція: "+position,game2Markup);
+        msg.editMessageWithButtons(chatId,gameMessage.getMessageId(),"Ваша позиція: "+position,game2Markup);
     }
 
-    private void editMessageWithButtons(long chatId, int messageId, String newText,InlineKeyboardMarkup markup) {
-        EditMessageText editMessage = new EditMessageText();
-        editMessage.setChatId(String.valueOf(chatId));
-        editMessage.setMessageId(messageId);
-        editMessage.setText(newText);
-        editMessage.setReplyMarkup(markup);
-
-        try {
-            execute(editMessage);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
+    private InlineKeyboardButton createButton(String text, String callbackData) {
+        InlineKeyboardButton button = new InlineKeyboardButton();
+        button.setText(text);
+        button.setCallbackData(callbackData);
+        return button;
     }
 
-    public void sendArrowButton(long chatId, String msg) {
-        InlineKeyboardButton up = new InlineKeyboardButton();
-        up.setText("⬆️");
-        up.setCallbackData("up");
-
-        InlineKeyboardButton down = new InlineKeyboardButton();
-        down.setText("⬇️");
-        down.setCallbackData("down");
-
-        InlineKeyboardButton right = new InlineKeyboardButton();
-        right.setText("➡️");
-        right.setCallbackData("right");
-
-        InlineKeyboardButton left = new InlineKeyboardButton();
-        left.setText("⬅️");
-        left.setCallbackData("left");
+    public void game2Buttons(long chatId, String msg) {
+        InlineKeyboardButton up = createButton("⬆️","up");
+        InlineKeyboardButton down = createButton("⬇️","down");
+        InlineKeyboardButton right = createButton("➡️","right");
+        InlineKeyboardButton left = createButton("⬅️","left");
 
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         rows.add(Arrays.asList(up));
@@ -273,14 +249,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    public void sendButtons(long chatId, String msg) {
-        InlineKeyboardButton yes = new InlineKeyboardButton();
-        yes.setText("Так");
-        yes.setCallbackData("yes");
-
-        InlineKeyboardButton no = new InlineKeyboardButton();
-        no.setText("Ні");
-        no.setCallbackData("no");
+    public void buttonsYesNo(long chatId, String msg) {
+        InlineKeyboardButton yes = createButton("Так","yes");
+        InlineKeyboardButton no = createButton("Ні","no");
 
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         rows.add(Arrays.asList(yes,no));
@@ -288,76 +259,16 @@ public class TelegramBot extends TelegramLongPollingBot {
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         markup.setKeyboard(rows);
 
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText(msg);
-        message.setReplyMarkup(markup);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
+        this.msg.sendMessageWithButtons(chatId, msg, markup);
     }
 
-    private void sendOutHistory(long chatId, String botMessage) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText(botMessage);
-        historySave.save(true,chatId,botMessage);
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            System.out.println(e.getMessage());
-            e.printStackTrace();
-        }
+    public HistorySave getHistorySave() {
+        return historySave;
     }
 
-    private void send(long chatId, String botMessage) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText(botMessage);
-        users.get(chatId).addMessage(true, message.getText());
-        historySave.save(true,chatId,message.getText());
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            System.out.println(e.getMessage());
-            e.printStackTrace();
-        }
+    public HashMap<Long, User> getUsers() {
+        return users;
     }
 
-    private void sendYes(long chatId, String userMessage) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText("Так");
-        users.get(chatId).addMessage(true, message.getText());
-        historySave.save(true,chatId,message.getText());
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            System.out.println(e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    private void sendHistory(long chatId, ArrayList<LocalMessage> messages) {
-        String historyMs = "";
-        for (int i = 0; i < messages.size(); i++) {
-            String person = "";
-            if (messages.get(i).getBot()){
-                person = "Бот: ";
-            } else {
-                person = "Ви: ";
-            }
-            historyMs+= person+messages.get(i).getMessage()+"\n";
-        }
-        if (historyMs.isEmpty()){
-            send(chatId,"Історія порожня");
-        } else {
-            send(chatId,"Історія:");
-            sendOutHistory(chatId, historyMs);
-        }
-    }
 }
 
