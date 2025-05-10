@@ -31,10 +31,31 @@ public class User{
     private Message onlineGameChoiceMessage = null;
     private Room room = null;
     private boolean onlineGameAgain = false;
+    Countdown10S countdown10S;
+    private ArrayList<Message> tempMessages = new ArrayList<>();
+
+    private Message sysMsg = null;
 
     public User(String name, long id){
         this.name = name;
         this.id = id;
+    }
+
+    public ArrayList<Message> getTempMessages() {
+        return tempMessages;
+    }
+
+    public void addTempMessages(Message m){
+        tempMessages.add(m);
+    }
+
+    public void startCountdown(TelegramBot bot, MessageManager msg, Room r, User player, User opponent){
+        countdown10S = new Countdown10S(bot,msg,r,player,opponent);
+        countdown10S.start();
+    }
+
+    public void stopCountdown(){
+        countdown10S.kill();
     }
 
     public void addMessage(boolean isBot, String message) {
@@ -189,5 +210,13 @@ public class User{
 
     public void setOnlineGameAgain(boolean onlineGameAgain) {
         this.onlineGameAgain = onlineGameAgain;
+    }
+
+    public Message getSysMsg() {
+        return sysMsg;
+    }
+
+    public void setSysMsg(Message sysMsg) {
+        this.sysMsg = sysMsg;
     }
 }

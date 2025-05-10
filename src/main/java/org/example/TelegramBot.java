@@ -1,6 +1,7 @@
 package org.example;
 
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -117,9 +118,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                 User opponent = users.get(opponentId);
 
                 if (callbackData.equals("again")){
+                    player.stopCountdown();
                     player.setOnlineGameAgain(true);
+                    msg.messageRemoveButtons(chatId,player.getOnlineGameChoiceMessage());
                     if (r.getRoomSeats()!=0){
-                        msg.send(chatId,"Опонент покинув гру");
+                        msg.ReturnAndSendMessageWithButtons(chatId,"Опонент покинув гру",null);
                         r.exitOnlineGame(this,msg,chatId);
                     }
                     else if (!opponent.isOnlineGameAgain()){
@@ -127,14 +130,19 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                     else if (player.isOnlineGameAgain()&&opponent.isOnlineGameAgain()){
                         player.setOnlineGameChoiceMessage(msg.ReturnAndSendMessageWithButtons(chatId,"Оберіть: ",onlineGameButtons()));
-                        opponent.setOnlineGameChoiceMessage(msg.ReturnAndSendMessageWithButtons(opponentId,"Оберіть: ",onlineGameButtons()));
+                        opponent.setOnlineGameChoiceMessage(msg.ReturnAndEditMessageWithButtons(opponentId,opponent.getOnlineGameChoiceMessage().getMessageId(),"Оберіть: ",onlineGameButtons()));
                         player.setOnlineGameAgain(false);
                         opponent.setOnlineGameAgain(false);
-                        return;
                     }
+                    return;
                 }
                 else if (callbackData.equals("exit")){
+                    player.stopCountdown();
                     r.exitOnlineGame(this,msg,chatId);
+                    if (opponent.isOnlineGameAgain()){
+                        msg.editMessage(opponentId,opponent.getOnlineGameChoiceMessage().getMessageId(),"Опонент покинув гру");
+                        r.exitOnlineGame(this,msg,opponentId);
+                    }
                     return;
                 }
 
@@ -154,10 +162,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                 String opponentChoice = opponent.getChoice();
 
                 if (opponentChoice != null) {
-                    msg.editMessageWithButtons(chatId,player.getOnlineGameChoiceMessage().getMessageId(), "Ваш вибір: " + playerChoice + "\nПротивник вибрав: " + opponentChoice + "\n" + getGameResult(playerChoice, opponentChoice),onlineGameAgain());
-                    msg.editMessageWithButtons(opponentId,opponent.getOnlineGameChoiceMessage().getMessageId(), "Ваш вибір: " + opponentChoice + "\nПротивник вибрав: " + playerChoice + "\n" + getGameResult(opponentChoice, playerChoice),onlineGameAgain());
-                    Countdown10S countdown10S = new Countdown10S(this,msg,r,player,opponent);
-                    countdown10S.start();
+                    player.setOnlineGameChoiceMessage(msg.ReturnAndEditMessageWithButtons(chatId,player.getOnlineGameChoiceMessage().getMessageId(), "Ваш вибір: " + playerChoice + "\nПротивник вибрав: " + opponentChoice + "\n" + getGameResult(playerChoice, opponentChoice),onlineGameAgain()));
+                    opponent.setOnlineGameChoiceMessage(msg.ReturnAndEditMessageWithButtons(opponentId,opponent.getOnlineGameChoiceMessage().getMessageId(), "Ваш вибір: " + opponentChoice + "\nПротивник вибрав: " + playerChoice + "\n" + getGameResult(opponentChoice, playerChoice),onlineGameAgain()));
+
+                    player.startCountdown(this,msg,r,player,opponent);
+                    opponent.startCountdown(this,msg,r,opponent,player);
                     player.setChoice(null);
                     opponent.setChoice(null);
 
@@ -434,13 +443,17 @@ class Countdown extends Thread {
     private final Room room;
     private final long id1;
     private final long id2;
+    ArrayList<Message> tempMessages1;
+    ArrayList<Message> tempMessages2;
 
-    public Countdown(TelegramBot bot, Room room, MessageManager msg, long id1, long id2) {
+    public Countdown(TelegramBot bot, Room room, MessageManager msg, long id1, long id2, ArrayList<Message> tempMessages1,ArrayList<Message> tempMessages2) {
         this.bot = bot;
         this.room = room;
         this.msg = msg;
         this.id1 = id1;
         this.id2 = id2;
+        this.tempMessages1 = tempMessages1;
+        this.tempMessages2 = tempMessages2;
     }
 
     @Override
@@ -448,9 +461,19 @@ class Countdown extends Thread {
         for (int i = 3; i >= 0; i--) {
             if (room.getRoomSeats() == 0) {
                 if (i >= 1) {
-                    msg.send(id1, i + "");
-                    msg.send(id2, i + "");
+                    bot.getUsers().get(id1).addTempMessages(msg.ReturnAndSendMessageWithButtons(id1, i + "",null));
+                    bot.getUsers().get(id2).addTempMessages(msg.ReturnAndSendMessageWithButtons(id2, i + "",null));
                 } else {
+                    for (Message m : tempMessages1) {
+                        if (m != null && m.getMessageId() != null) {
+                            msg.deleteMessage(id1, m.getMessageId());
+                        }
+                    }
+                    for (Message m : tempMessages2) {
+                        if (m != null && m.getMessageId() != null) {
+                            msg.deleteMessage(id2, m.getMessageId());
+                        }
+                    }
                     room.setReady(false);
                     bot.getUsers().get(id1).setOnlineGameChoiceMessage(msg.ReturnAndSendMessageWithButtons(id1,"Оберіть: ",bot.onlineGameButtons()));
                     bot.getUsers().get(id2).setOnlineGameChoiceMessage(msg.ReturnAndSendMessageWithButtons(id2,"Оберіть: ",bot.onlineGameButtons()));
@@ -465,53 +488,12 @@ class Countdown extends Thread {
                     return;
                 }
             } else {
-                msg.send(id1, "Помилка: гравець покинув кімнату");
-                msg.send(id2, "Помилка: гравець покинув кімнату");
+                bot.getUsers().get(id1).addTempMessages(msg.ReturnAndSendMessageWithButtons(id1, "Помилка: гравець покинув кімнату",null));
+                bot.getUsers().get(id2).addTempMessages(msg.ReturnAndSendMessageWithButtons(id2, "Помилка: гравець покинув кімнату",null));
                 room.setReady(false);
                 return;
             }
         }
-    }
-}
-class Countdown10S extends Thread {
-
-    private final TelegramBot bot;
-    private Room r;
-    private User player;
-    private User opponent;
-    private MessageManager msg;
-
-
-    public Countdown10S(TelegramBot bot,MessageManager msg,Room r,User player, User opponent) {
-        this.bot = bot;
-        this.msg = msg;
-        this.r = r;
-        this.player = player;
-        this.opponent = opponent;
-    }
-
-    @Override
-    public void run() {
-        for (int i = 10; i > 0; i--) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-        }
-        if (player.isOnlineGame()&&opponent.isOnlineGame()){
-            r.exitOnlineGame(bot,msg,player.getId());
-            r.exitOnlineGame(bot,msg,opponent.getId());
-        }else {
-            if (!player.isOnlineGame()){
-                r.exitOnlineGame(bot,msg,opponent.getId());
-            }else if (!opponent.isOnlineGame()){
-                r.exitOnlineGame(bot,msg,player.getId());
-            }
-        }
-
-
     }
 }
 

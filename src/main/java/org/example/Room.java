@@ -1,5 +1,6 @@
 package org.example;
 
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.ArrayList;
@@ -29,7 +30,6 @@ public class Room {
         players.remove(id);
     }
 
-
     public int getRoomSeats(){
         int seats = 2;
         return seats- players.size();
@@ -48,6 +48,10 @@ public class Room {
 
     public void clearPlayerIn(){
         playerIn = "";
+    }
+
+    public void clearPlayers(){
+        playerIn = "";
         players.clear();
     }
 
@@ -63,23 +67,24 @@ public class Room {
         return new ArrayList<>(players.keySet());
     }
 
-    public void roomHandler(TelegramBot bot, MessageManager msg, Update update,Room r1, Room r2){
+    public void roomHandler(TelegramBot bot, MessageManager msg, Update update,Room r1, Room r2) {
         long chatId = update.getCallbackQuery().getMessage().getChatId();
+        User user = bot.getUsers().get(chatId);
         if (getRoomSeats()==0){
-            msg.send(chatId,"Кімната "+getNum()+" заповнена"); // сообщение
+            user.addTempMessages(msg.ReturnAndSendMessageWithButtons(chatId,"Кімната "+getNum()+" заповнена",null));
         }
         else if (bot.getUsers().get(chatId).getRoom()!=null){
-            msg.send(chatId,"Ви вже в кімнаті "+ getNum()); // сообщение
+            user.addTempMessages(msg.ReturnAndSendMessageWithButtons(chatId,"Ви вже в кімнаті "+ getNum(),null));
         }
         else {
             addPlayer(chatId,update.getCallbackQuery().getFrom().getUserName()==null ? update.getCallbackQuery().getFrom().getFirstName() : update.getCallbackQuery().getFrom().getUserName());
             bot.getUsers().get(chatId).setRoom(this);
             updateRooms(bot,msg,r1,r2);
-            msg.send(chatId,"Ви приєдналися до "+getNum()+" кімнати");// сообщение
+            user.addTempMessages(msg.ReturnAndSendMessageWithButtons(chatId,"Ви приєдналися до "+getNum()+" кімнати",null));
             if (getRoomSeats()==0){
                 setReady(true);
                 ArrayList<Long> Ids = getPlId();
-                Countdown countdown = new Countdown(bot,this,msg,Ids.getFirst(),Ids.getLast());
+                Countdown countdown = new Countdown(bot,this,msg,Ids.getFirst(),Ids.getLast(),bot.getUsers().get(Ids.getFirst()).getTempMessages(),bot.getUsers().get(Ids.getLast()).getTempMessages());
                 countdown.start();
             }
         }
@@ -95,7 +100,7 @@ public class Room {
             r2.clearPlayerIn();
         }
         updateRooms(bot,msg,r1,r2);
-        msg.send(chatId,"Ви вийшли з кімнати "+ bot.getUsers().get(chatId).getRoom().getNum());
+        bot.getUsers().get(chatId).addTempMessages(msg.ReturnAndSendMessageWithButtons(chatId,"Ви вийшли з кімнати "+ bot.getUsers().get(chatId).getRoom().getNum(),null));
         bot.getUsers().get(chatId).setRoom(null);
     }
 
@@ -115,8 +120,8 @@ public class Room {
         }
     }
 
-    public void exitOnlineGame(TelegramBot bot, MessageManager msg,long chatId){
-        msg.messageRemoveButtons(chatId,bot.getUsers().get(chatId).getOnlineGameChoiceMessage());
+    public void exitOnlineGame(TelegramBot bot, MessageManager msg,long chatId){                        //Функция сплошная ошибка, переделать
+        msg.messageRemoveButtons(chatId,bot.getUsers().get(chatId).getOnlineGameChoiceMessage()); //Вызывает ошибку!
         removePlayer(chatId);
         clearPlayerIn();
         bot.getUsers().get(chatId).setChoice(null);
@@ -125,3 +130,4 @@ public class Room {
 
     }
 }
+

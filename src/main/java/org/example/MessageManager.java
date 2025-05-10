@@ -54,6 +54,20 @@ public class MessageManager {
         return null;
     }
 
+    public Message ReturnAndEditMessageWithButtons(long chatId, int messageId, String newText,InlineKeyboardMarkup markup){
+        EditMessageText editMessage = new EditMessageText();
+        editMessage.setChatId(String.valueOf(chatId));
+        editMessage.setMessageId(messageId);
+        editMessage.setText(newText);
+        editMessage.setReplyMarkup(markup);
+        try {
+            return (Message) bot.execute(editMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public void editMessageWithButtons(long chatId, int messageId, String newText,InlineKeyboardMarkup markup) {
         EditMessageText editMessage = new EditMessageText();
         editMessage.setChatId(String.valueOf(chatId));

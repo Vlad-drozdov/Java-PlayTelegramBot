@@ -3,6 +3,8 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 src/main/java/org/example/BotPassword.java
+src/main/java/histories/
+src/main/java/game2positions/
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
